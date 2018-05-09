@@ -28,7 +28,7 @@ function itereateSurveryLists({lists, index = 0}){
   const list = lists[index];
 
   function listComplete() {
-    if (++index === list.length) {
+    if (++index === lists.length) {
       console.log('All lists have been cycled through');
       return Promise.resolve()
     } else {
@@ -106,6 +106,7 @@ function waitUntilNext(){
   console.log('Waiting');
   return new Promise((resolve, reject) => {
     setTimeout(() => {
+      return resolve();
     }, 4000);
   });
 }
