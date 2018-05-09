@@ -1,0 +1,20 @@
+{
+  "name": "surverygizmo_crawler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "worker/index.js",
+  "scripts": {
+    "start": "worker/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BerlingskeMedia/surverygizmo_crawler.git"
+  },
+  "author": "Piotr",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BerlingskeMedia/surverygizmo_crawler/issues"
+  },
+  "homepage": "https://github.com/BerlingskeMedia/surverygizmo_crawler#readme"
+}
