@@ -3,12 +3,19 @@
 
 function run() {
 
+  const tenSeconds = 10 * 1000;
+  const oneMinute = tenSeconds * 6;
+
   return fakeGetSurveysFromGizmo()
   .then(lists => itereateSurveryLists({lists: lists}))
   .then(() => cleanUpOldRows())
-  .then(() => waitUntilNext())
+  .then(() => waitUntil({timeout: tenSeconds}))
   .then(() => run())
-  .catch(err => console.error(err));
+  .catch(err => {
+    console.error(err);
+    waitUntil({timeout: oneMinute})
+    .then(() => run());
+  });
 
 }
 
@@ -38,8 +45,7 @@ function itereateSurveryLists({lists, index = 0}){
 
   return getSurveyContacts({surveyId: list.surveyId})
   .then(contacts => doSomeStuff({contacts: contacts}))
-  .then(() => listComplete())
-  .catch(err => console.error(err));
+  .then(() => listComplete());
 
 }
 
@@ -102,12 +108,12 @@ function cleanUpOldRows(){
 }
 
 
-function waitUntilNext(){
-  console.log('Waiting');
+function waitUntil({timeout}){
+  console.log(`Waiting ${timeout/1000} seconds`);
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       return resolve();
-    }, 4000);
+    }, timeout);
   });
 }
 
