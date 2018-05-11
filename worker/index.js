@@ -1,38 +1,111 @@
+const mdb = require('../lib/mdb_client');
+const Sgizmo = require('../lib/surveygizmo_client');
 
-// const mdb = require('./mdb_client');
-const Sgizmo = require('../lib/surveygizmo-client');
 function run() {
-
-
-  const tenSeconds = 10 * 1000;
-  const oneMinute = tenSeconds * 6;
-
-
-
   return getSurveysFromGizmo()
-  .then(lists => itereateSurveryLists({lists: lists.data}))
-  // .then(() => cleanUpOldRows())
-  // .then(() => waitUntil({timeout: tenSeconds}))
-  // .then(() => run())
+    .then(surveys => {
+      const mdbRequests = surveys.map(({survey, responses}) => {
+        const payload = getMdbPayload(survey, responses);
+        // TODO: build sql from payload
+        console.log(payload.contactEmail);
+        return Promise.resolve();
+        // TODO: perform mdb request for this payload
+        return mdb.query('INSERT...');
+      });
+
+      Promise.all(mdbRequests).then(() => {
+        // TODO: clean up mdb after all requests
+        // TODO: schedule next walk
+      });
+    })
   .catch(err => {
     console.error(err);
-    waitUntil({timeout: oneMinute})
-    .then(() => run());
   });
 
 }
 
+function isValidEmail(text) {
+  return text.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
+}
 
-function getSurveysFromGizmo(){
-  console.log('eloszka');
-//    3907789/surveyresponse
-  const params  = [];
-  return Sgizmo.getSurveys(params);
+function findContactEmail(response) {
+  const keys = Object.keys(response.survey_data);
+
+  for (let i = 0, n = keys.length, answer = response.survey_data[keys[i]]; i < n; i++) {
+    if (answer.type === 'parent') {
+      const subKeys = Object.keys(answer.subquestions);
+      for (let j = 0, m = subKeys.length, subAnswer = answer.subquestions[subKeys[j]]; j < m; j++) {
+        if (isValidEmail(subAnswer.answer)) {
+          return subAnswer.answer;
+        }
+      }
+    }
+
+    if (isValidEmail(answer.answer)) {
+      return answer.answer;
+    }
+  }
+
+  return null;
+}
+
+function getMdbPayload(survey, responses) {
+  return responses.map(response => {
+    const contactEmail = findContactEmail(response);
+
+    if (contactEmail) {
+      return {
+        surveyId: survey.id,
+        surveyName: survey.title,
+        contactEmail,
+        date: response.date_submitted
+      };
+    }
+
+    return null;
+  }).filter(payload => payload !== null);
+}
+
+function getPagedResults(getter, pageSize) {
+  return new Promise((fulfill, reject) => {
+    getter(pageSize, 1).then(firstResponse => {
+      const requests = [Promise.resolve(firstResponse)];
+
+      // for (let i = 2, n = firstResponse.total_pages; i < n; i++) {
+      for (let i = 2, n = 1; i < n; i++) {
+        requests.push(getter(pageSize, i));
+      }
+
+      Promise.all(requests)
+        .then(responses => responses.reduce((flat, response) => flat.concat(response.data), []))
+        .then(fulfill)
+        .catch(reject);
+    });
+  });
+}
+
+function getAllSurveys() {
+  return getPagedResults((pageSize, page) => Sgizmo.getSurveys(pageSize, page), 10);
+}
+
+function getAllSurveyResponses(surveyId) {
+  return getPagedResults((pageSize, page) => Sgizmo.getSurveyResponse(surveyId, pageSize, page), 10);
+}
+
+function getSurveysFromGizmo() {
+  return getAllSurveys().then(surveys => {
+    const allSurveysWithResponses = surveys.map(survey => {
+      return getAllSurveyResponses(survey.id).then(responses => ({survey, responses}));
+    });
+
+    return Promise.all(allSurveysWithResponses);
+  });
 }
 
 
 function itereateSurveryLists({lists, index = 0}){
-  console.log(lists);return 1;
+  // console.log(lists);
+  return 1;
   const list = lists[index];
 
   function listComplete() {
