@@ -1,16 +1,19 @@
 
 // const mdb = require('./mdb_client');
-
+const Sgizmo = require('../lib/surveygizmo-client');
 function run() {
+
 
   const tenSeconds = 10 * 1000;
   const oneMinute = tenSeconds * 6;
 
-  return fakeGetSurveysFromGizmo()
-  .then(lists => itereateSurveryLists({lists: lists}))
-  .then(() => cleanUpOldRows())
-  .then(() => waitUntil({timeout: tenSeconds}))
-  .then(() => run())
+
+
+  return getSurveysFromGizmo()
+  .then(lists => itereateSurveryLists({lists: lists.data}))
+  // .then(() => cleanUpOldRows())
+  // .then(() => waitUntil({timeout: tenSeconds}))
+  // .then(() => run())
   .catch(err => {
     console.error(err);
     waitUntil({timeout: oneMinute})
@@ -20,18 +23,16 @@ function run() {
 }
 
 
-function fakeGetSurveysFromGizmo(){
-  const fakeSurveryList = [
-    {surveyId: 1212},
-    {surveyId: 1213}
-  ];
-
-  return Promise.resolve(fakeSurveryList);
+function getSurveysFromGizmo(){
+  console.log('eloszka');
+//    3907789/surveyresponse
+  const params  = [];
+  return Sgizmo.getSurveys(params);
 }
 
 
 function itereateSurveryLists({lists, index = 0}){
-
+  console.log(lists);return 1;
   const list = lists[index];
 
   function listComplete() {
@@ -43,7 +44,7 @@ function itereateSurveryLists({lists, index = 0}){
     }
   }
 
-  return getSurveyContacts({surveyId: list.surveyId})
+  return getSurveyContacts({surveyId: list.id})
   .then(contacts => doSomeStuff({contacts: contacts}))
   .then(() => listComplete());
 

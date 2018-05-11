@@ -4,7 +4,7 @@
   "description": "",
   "main": "worker/index.js",
   "scripts": {
-    "start": "worker/index.js",
+    "start": "node worker/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -16,5 +16,9 @@
   "bugs": {
     "url": "https://github.com/BerlingskeMedia/surverygizmo_crawler/issues"
   },
-  "homepage": "https://github.com/BerlingskeMedia/surverygizmo_crawler#readme"
+  "homepage": "https://github.com/BerlingskeMedia/surverygizmo_crawler#readme",
+  "dependencies": {
+    "boom": "^7.1.1",
+    "request": "^2.85.0"
+  }
 }
