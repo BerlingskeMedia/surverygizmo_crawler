@@ -1,14 +1,17 @@
 const mdb = require('../lib/mdb_client');
 const Sgizmo = require('../lib/surveygizmo_client');
+const {parseData} = require('../lib/surveygizmo_parser');
 
 function run() {
   return getSurveysFromGizmo()
     .then(surveys => {
-      const mdbRequests = surveys.map(({survey, responses}) => {
-        const payload = getMdbPayload(survey, responses);
-        // TODO: perform mdb request for this payload
-        return sendPayloadToMdb(payload);
-      });
+      const mdbRequests = surveys
+        .map(({survey, responses}) => {
+          const payload = getMdbPayload(survey, responses);
+          // TODO: perform mdb request for this payload
+          console.log(payload);
+          return sendPayloadToMdb(payload);
+        });
 
       Promise.all(mdbRequests).then(() => {
         // TODO: clean up mdb after all requests
@@ -31,10 +34,14 @@ function isValidEmail(text) {
 function findContactEmail(response) {
   const keys = Object.keys(response.survey_data);
 
-  for (let i = 0, n = keys.length, answer = response.survey_data[keys[i]]; i < n; i++) {
+  for (let i = 0, n = keys.length; i < n; i++) {
+    const answer = response.survey_data[keys[i]];
+
     if (answer.type === 'parent') {
       const subKeys = Object.keys(answer.subquestions);
-      for (let j = 0, m = subKeys.length, subAnswer = answer.subquestions[subKeys[j]]; j < m; j++) {
+      for (let j = 0, m = subKeys.length; j < m; j++) {
+        const subAnswer = answer.subquestions[subKeys[j]];
+
         if (isValidEmail(subAnswer.answer)) {
           return subAnswer.answer;
         }
@@ -56,7 +63,8 @@ function getMdbPayload(survey, responses) {
         surveyId: survey.id,
         surveyName: survey.title,
         contactEmail,
-        date: response.date_submitted
+        date: response.date_submitted,
+        jsonData: parseData(response)
       };
     }
 
@@ -84,18 +92,21 @@ function getPagedResults(getter, pageSize) {
 }
 
 function getAllSurveys() {
-  return getPagedResults((pageSize, page) => Sgizmo.getSurveys(pageSize, page), 10);
+  return getPagedResults((pageSize, page) => Sgizmo.getSurveys(pageSize, page), 2);
 }
 
 function getAllSurveyResponses(surveyId) {
-  return getPagedResults((pageSize, page) => Sgizmo.getSurveyResponse(surveyId, pageSize, page), 10);
+  return getPagedResults((pageSize, page) => Sgizmo.getSurveyResponse(surveyId, pageSize, page), 2);
 }
 
 function getSurveysFromGizmo() {
   return getAllSurveys().then(surveys => {
-    const allSurveysWithResponses = surveys.map(survey => {
-      return getAllSurveyResponses(survey.id).then(responses => ({survey, responses}));
-    });
+    const allSurveysWithResponses = surveys
+      .filter(survey => !!survey.statistics)
+      .map(survey => getAllSurveyResponses(survey.id).then(responses => ({
+          survey,
+          responses
+      })));
 
     return Promise.all(allSurveysWithResponses);
   });
@@ -103,7 +114,9 @@ function getSurveysFromGizmo() {
 
 function sendPayloadToMdb(payload) {
   const tableName = 'tbl_surveygizmo';
-  const query = `DELETE from ${tableName} WHERE survey_id=${payload.surveyId};`;
+  const tableFields = ['survey_id', 'survey_name', 'email', 'date_submitted', 'json_data'];
+  // const deleteQuery = `DELETE from ${tableName} WHERE survey_id=${payload.surveyId};`;
+  const insertQuery = `INSERT INTO ${tableName} (${tableFields.join(',')}) VALUES ${payload.map(item => `(${item.surveyId}, '${item.surveyName}', '${item.contactEmail}', '${item.date}', '${item.jsonData}')`)};`;
 
   return Promise.resolve();
 }
