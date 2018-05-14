@@ -1,6 +1,7 @@
 const mdb = require('../lib/mdb_client');
 const Sgizmo = require('../lib/surveygizmo_client');
 const {parseData} = require('../lib/surveygizmo_parser');
+const RESULTS_PER_PAGE = process.env.SURVEYGIZMO_REST_API_RESULTS_PER_PAGE || 10;
 
 function run() {
   return getSurveysFromGizmo()
@@ -91,11 +92,11 @@ function getPagedResults(getter, pageSize) {
 }
 
 function getAllSurveys() {
-  return getPagedResults((pageSize, page) => Sgizmo.getSurveys(pageSize, page), 2);
+  return getPagedResults((pageSize, page) => Sgizmo.getSurveys(pageSize, page), RESULTS_PER_PAGE);
 }
 
 function getAllSurveyResponses(surveyId) {
-  return getPagedResults((pageSize, page) => Sgizmo.getSurveyResponse(surveyId, pageSize, page), 2);
+  return getPagedResults((pageSize, page) => Sgizmo.getSurveyResponse(surveyId, pageSize, page), RESULTS_PER_PAGE);
 }
 
 function getSurveysFromGizmo() {
@@ -114,9 +115,24 @@ function getSurveysFromGizmo() {
 function sendPayloadToMdb(payload) {
   const tableName = 'tbl_surveygizmo';
   const tableFields = ['survey_id', 'survey_name', 'email', 'date_submitted', 'json_data'];
-  // const deleteQuery = `DELETE from ${tableName} WHERE survey_id=${payload.surveyId};`;
+  const deleteQuery = `TRUNCATE TABLE ${tableName};`;
   const insertQuery = `INSERT INTO ${tableName} (${tableFields.join(',')}) VALUES ${payload.map(item => `(${item.surveyId}, '${item.surveyName}', '${item.contactEmail}', '${item.date}', '${item.jsonData}')`).join(', ')};`;
 
+  mdb.query(deleteQuery, function (err, result) {
+    if (err) {
+      console.log('ERROR: unsuccesfull truncate');
+    } else {
+      console.log('TRUNCATE SUCCESS!');
+    }
+  });
+
+  mdb.query(insertQuery, function (err, result) {
+    if (err) {
+      console.log('ERROR: unsuccesfull import');
+    } else {
+      console.log('SUCCESS!!11xD');
+    }
+  });
   return Promise.resolve();
 }
 
