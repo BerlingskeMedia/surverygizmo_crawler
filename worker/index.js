@@ -5,6 +5,7 @@ const RESULTS_PER_PAGE = process.env.SURVEYGIZMO_REST_API_RESULTS_PER_PAGE || 10
 
 function run() {
   return getSurveysFromGizmo()
+    .then(surveys => {cleanUpMdb(); return surveys;})
     .then(surveys => {
       const mdbRequests = surveys
         .map(({survey, responses}) => {
@@ -62,7 +63,7 @@ function getMdbPayload(survey, responses) {
       return {
         surveyId: survey.id,
         surveyName: survey.title,
-        contactEmail,
+        contactEmail: contactEmail.toLowerCase(),
         date: response.date_submitted,
         jsonData: parseData(response)
       };
@@ -115,16 +116,7 @@ function getSurveysFromGizmo() {
 function sendPayloadToMdb(payload) {
   const tableName = 'tbl_surveygizmo';
   const tableFields = ['survey_id', 'survey_name', 'email', 'date_submitted', 'json_data'];
-  const deleteQuery = `TRUNCATE TABLE ${tableName};`;
   const insertQuery = `INSERT INTO ${tableName} (${tableFields.join(',')}) VALUES ${payload.map(item => `(${item.surveyId}, '${item.surveyName}', '${item.contactEmail}', '${item.date}', '${item.jsonData}')`).join(', ')};`;
-
-  mdb.query(deleteQuery, function (err, result) {
-    if (err) {
-      console.log('ERROR: unsuccesfull truncate');
-    } else {
-      console.log('TRUNCATE SUCCESS!');
-    }
-  });
 
   mdb.query(insertQuery, function (err, result) {
     if (err) {
@@ -134,6 +126,18 @@ function sendPayloadToMdb(payload) {
     }
   });
   return Promise.resolve();
+}
+
+function cleanUpMdb() {
+  const tableName = 'tbl_surveygizmo';
+  const deleteQuery = `TRUNCATE TABLE ${tableName};`;
+  mdb.query(deleteQuery, function (err, result) {
+    if (err) {
+      console.log('ERROR: unsuccesfull truncate');
+    } else {
+      console.log('TRUNCATE SUCCESS!');
+    }
+  });
 }
 
 run();
