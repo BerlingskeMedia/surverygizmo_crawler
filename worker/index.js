@@ -9,7 +9,6 @@ function run() {
         .map(({survey, responses}) => {
           const payload = getMdbPayload(survey, responses);
           // TODO: perform mdb request for this payload
-          console.log(payload);
           return sendPayloadToMdb(payload);
         });
 
@@ -116,7 +115,7 @@ function sendPayloadToMdb(payload) {
   const tableName = 'tbl_surveygizmo';
   const tableFields = ['survey_id', 'survey_name', 'email', 'date_submitted', 'json_data'];
   // const deleteQuery = `DELETE from ${tableName} WHERE survey_id=${payload.surveyId};`;
-  const insertQuery = `INSERT INTO ${tableName} (${tableFields.join(',')}) VALUES ${payload.map(item => `(${item.surveyId}, '${item.surveyName}', '${item.contactEmail}', '${item.date}', '${item.jsonData}')`)};`;
+  const insertQuery = `INSERT INTO ${tableName} (${tableFields.join(',')}) VALUES ${payload.map(item => `(${item.surveyId}, '${item.surveyName}', '${item.contactEmail}', '${item.date}', '${item.jsonData}')`).join(', ')};`;
 
   return Promise.resolve();
 }
