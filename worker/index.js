@@ -79,8 +79,8 @@ function getPagedResults(getter, pageSize) {
       const requests = [Promise.resolve(firstResponse)];
 
       // TODO: count to firstResponse.total_pages
-      // for (let i = 2, n = firstResponse.total_pages; i < n; i++) {
-      for (let i = 2, n = 1; i < n; i++) {
+      for (let i = 2, n = firstResponse.total_pages; i < n; i++) {
+      // for (let i = 2, n = 1; i < n; i++) {
         requests.push(getter(pageSize, i));
       }
 
