@@ -43,11 +43,11 @@ function findContactEmail(response) {
       for (let j = 0, m = subKeys.length; j < m; j++) {
         const subAnswer = answer.subquestions[subKeys[j]];
 
-        if (isValidEmail(subAnswer.answer)) {
+        if (subAnswer.answer && isValidEmail(subAnswer.answer)) {
           return subAnswer.answer;
         }
       }
-    } else if (isValidEmail(answer.answer)) {
+    } else if (answer.answer && isValidEmail(answer.answer)) {
       return answer.answer;
     }
   }
@@ -79,8 +79,8 @@ function getPagedResults(getter, pageSize) {
       const requests = [Promise.resolve(firstResponse)];
 
       // TODO: count to firstResponse.total_pages
-      for (let i = 2, n = firstResponse.total_pages; i < n; i++) {
-      // for (let i = 2, n = 1; i < n; i++) {
+      // for (let i = 2, n = firstResponse.total_pages; i < n; i++) {
+      for (let i = 2, n = 10; i < n; i++) {
         requests.push(getter(pageSize, i));
       }
 
