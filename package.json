@@ -20,6 +20,7 @@
   "dependencies": {
     "boom": "^7.1.1",
     "pg": "7.4.3",
-    "request": "^2.85.0"
+    "request": "^2.85.0",
+    "striptags": "3.1.1"
   }
 }
