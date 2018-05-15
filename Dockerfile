@@ -17,11 +17,9 @@ RUN wget -O - https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-linux-x64
 WORKDIR /surveygizmo_crawler
 
 # Copying the code into image. Be aware no config files are including.
+COPY ./lib /surveygizmo_crawler/lib
 COPY ./node_modules /surveygizmo_crawler/node_modules
 COPY ./worker /surveygizmo_crawler/worker
 
-# Exposing our endpoint to Docker.
-EXPOSE  8000
-
 # When starting a container with our image, this command will be run.
-CMD ["node", "worker/app.js"]
+CMD ["node", "worker/index.js"]
