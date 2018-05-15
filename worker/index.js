@@ -1,7 +1,7 @@
 const mdb = require('../lib/mdb_client');
 const Sgizmo = require('../lib/surveygizmo_client');
 const {parseData} = require('../lib/surveygizmo_parser');
-const RESULTS_PER_PAGE = process.env.SURVEYGIZMO_REST_API_RESULTS_PER_PAGE || 10;
+const RESULTS_PER_PAGE = process.env.SURVEYGIZMO_REST_API_RESULTS_PER_PAGE || 50;
 
 function run() {
   return getSurveysFromGizmo()
@@ -15,10 +15,7 @@ function run() {
         });
 
       Promise.all(mdbRequests).then(() => {
-        // TODO: clean up mdb after all requests
-
-
-        // TODO: schedule next walk
+        console.log('schedule next walk');
         setTimeout(() => run(), 12 * 60 * 60 * 1000);
       });
     })
@@ -79,8 +76,8 @@ function getPagedResults(getter, pageSize) {
       const requests = [Promise.resolve(firstResponse)];
 
       // TODO: count to firstResponse.total_pages
-      // for (let i = 2, n = firstResponse.total_pages; i < n; i++) {
-      for (let i = 2, n = 10; i < n; i++) {
+      for (let i = 2, n = firstResponse.total_pages; i < n; i++) {
+      // for (let i = 2, n = 2; i < n; i++) {
         requests.push(getter(pageSize, i));
       }
 
@@ -116,10 +113,11 @@ function getSurveysFromGizmo() {
 function sendPayloadToMdb(payload) {
   const tableName = 'tbl_surveygizmo';
   const tableFields = ['survey_id', 'survey_name', 'email', 'date_submitted', 'json_data'];
-  const insertQuery = `INSERT INTO ${tableName} (${tableFields.join(',')}) VALUES ${payload.map(item => `(${item.surveyId}, '${item.surveyName}', '${item.contactEmail}', '${item.date}', '${item.jsonData}')`).join(', ')};`;
+  const insertQuery = `INSERT INTO ${tableName} (${tableFields.join(',')}) VALUES ${payload.map(item => `(${item.surveyId}, '${item.surveyName}', '${item.contactEmail}', '${item.date}', '${item.jsonData.replace(/'/g, "''")}')`).join(', ')};`;
 
   mdb.query(insertQuery, function (err, result) {
     if (err) {
+      console.log(insertQuery);
       console.log('ERROR: unsuccesfull import');
     } else {
       console.log('SUCCESS!!11xD');
