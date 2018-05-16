@@ -114,7 +114,7 @@ function sendPayloadToMdb(payload) {
     if (err) {
       console.log('ERROR: unsuccesfull import');
     } else {
-      console.log(`INSERT for surveyID ${surveyId} SUCCESS`);
+      console.log(`INSERT SUCCESS`);
     }
   });
   return Promise.resolve();
