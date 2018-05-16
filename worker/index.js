@@ -5,27 +5,18 @@ const RESULTS_PER_PAGE = process.env.SURVEYGIZMO_REST_API_RESULTS_PER_PAGE || 50
 
 function run() {
   return getSurveysFromGizmo()
-    .then(surveys => {cleanUpMdb(); return surveys;})
-    .then(surveys => {
-      const mdbRequests = surveys
-        .map(({survey, responses}) => {
-          const payload = getMdbPayload(survey, responses);
-          // TODO: perform mdb request for this payload
-          return sendPayloadToMdb(payload);
-        });
-
-      Promise.all(mdbRequests).then(() => {
-        console.log('schedule next walk');
-        setTimeout(() => run(), 12 * 60 * 60 * 1000);
-      });
+    .then(() => {
+      console.log('schedule next walk');
+      setTimeout(() => run(), 12 * 60 * 60 * 1000);
     })
-  .catch(err => {
-    console.error(err);
-  });
+    .catch(err => {
+      console.error(err);
+    });
 
 }
 
 function isValidEmail(text) {
+  console.log(typeof text, text);
   return text.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
 }
 
@@ -99,14 +90,20 @@ function getAllSurveyResponses(surveyId) {
 
 function getSurveysFromGizmo() {
   return getAllSurveys().then(surveys => {
-    const allSurveysWithResponses = surveys
-      .filter(survey => !!survey.statistics)
-      .map(survey => getAllSurveyResponses(survey.id).then(responses => ({
-          survey,
-          responses
-      })));
+    const allSurveys = surveys
+      .filter(survey => !!survey.statistics);
 
-    return Promise.all(allSurveysWithResponses);
+    for (let i = 0, len = allSurveys.length; i < len; i++) {
+      const survey = allSurveys[i];
+      getAllSurveyResponses(survey.id).then(responses => {
+        cleanUpMdb(survey.id);
+        if (responses && responses.length) {
+          sendPayloadToMdb(getMdbPayload(survey, responses));
+        }
+      });
+    }
+
+    return Promise.resolve();
   });
 }
 
@@ -126,12 +123,12 @@ function sendPayloadToMdb(payload) {
   return Promise.resolve();
 }
 
-function cleanUpMdb() {
+function cleanUpMdb(surveyId) {
   const tableName = 'tbl_surveygizmo';
-  const deleteQuery = `TRUNCATE TABLE ${tableName};`;
+  const deleteQuery = `DELETE FROM ${tableName} WHERE survey_id = ${surveyId};`;
   mdb.query(deleteQuery, function (err, result) {
     if (err) {
-      console.log('ERROR: unsuccesfull truncate');
+      console.log('ERROR: unsuccesfull delete from ', surveyId);
     } else {
       console.log('TRUNCATE SUCCESS!');
     }
