@@ -16,7 +16,6 @@ function run() {
 }
 
 function isValidEmail(text) {
-  console.log(typeof text, text);
   return text.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
 }
 
@@ -67,8 +66,8 @@ function getPagedResults(getter, pageSize) {
       const requests = [Promise.resolve(firstResponse)];
 
       // TODO: count to firstResponse.total_pages
-      for (let i = 2, n = firstResponse.total_pages; i < n; i++) {
-      // for (let i = 2, n = 2; i < n; i++) {
+      // for (let i = 2, n = firstResponse.total_pages; i < n; i++) {
+      for (let i = 2, n = 2; i < n; i++) {
         requests.push(getter(pageSize, i));
       }
 
@@ -93,15 +92,14 @@ function getSurveysFromGizmo() {
     const allSurveys = surveys
       .filter(survey => !!survey.statistics);
 
-    for (let i = 0, len = allSurveys.length; i < len; i++) {
-      const survey = allSurveys[i];
+    allSurveys.forEach(survey => {
       getAllSurveyResponses(survey.id).then(responses => {
         cleanUpMdb(survey.id);
         if (responses && responses.length) {
           sendPayloadToMdb(getMdbPayload(survey, responses));
         }
       });
-    }
+    });
 
     return Promise.resolve();
   });
@@ -114,10 +112,9 @@ function sendPayloadToMdb(payload) {
 
   mdb.query(insertQuery, function (err, result) {
     if (err) {
-      console.log(insertQuery);
       console.log('ERROR: unsuccesfull import');
     } else {
-      console.log('SUCCESS!!11xD');
+      console.log(`INSERT for surveyID ${surveyId} SUCCESS`);
     }
   });
   return Promise.resolve();
@@ -130,7 +127,7 @@ function cleanUpMdb(surveyId) {
     if (err) {
       console.log('ERROR: unsuccesfull delete from ', surveyId);
     } else {
-      console.log('TRUNCATE SUCCESS!');
+      console.log(`DELETE for surveyID ${surveyId} SUCCESS`);
     }
   });
 }
