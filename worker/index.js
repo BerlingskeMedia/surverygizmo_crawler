@@ -2,7 +2,8 @@ const mdb = require('../lib/mdb_client');
 const Sgizmo = require('../lib/surveygizmo_client');
 const {parseData} = require('../lib/surveygizmo_parser');
 const RESULTS_PER_PAGE = process.env.SURVEYGIZMO_REST_API_RESULTS_PER_PAGE || 50;
-
+// debugging feature
+// process.on('unhandledRejection', r => console.log(r));
 function run() {
   return getSurveysFromGizmo()
     .then(() => {
@@ -15,11 +16,18 @@ function run() {
 
 }
 
+function isNotEmptyString(text) {
+  return typeof text === 'string' && text !== "";
+}
+
 function isValidEmail(text) {
-  return text.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
+  return isNotEmptyString(text) && text.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
 }
 
 function findContactEmail(response) {
+  if (!response.survey_data) {
+    return null;
+  }
   const keys = Object.keys(response.survey_data);
 
   for (let i = 0, n = keys.length; i < n; i++) {
@@ -96,7 +104,10 @@ function getSurveysFromGizmo() {
       getAllSurveyResponses(survey.id).then(responses => {
         cleanUpMdb(survey.id);
         if (responses && responses.length) {
-          sendPayloadToMdb(getMdbPayload(survey, responses));
+          const payload = getMdbPayload(survey, responses);
+          if (payload.length > 0) {
+            sendPayloadToMdb(payload);
+          }
         }
       });
     });
